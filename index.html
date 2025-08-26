@@ -4,32 +4,61 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Карта Минска</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=ваш_ключ&lang=ru_RU"></script>
     <style>
         body, html {
             margin: 0;
             padding: 0;
             height: 100%;
             overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
         }
         #map {
             width: 100%;
             height: 100vh;
         }
+        .watermark {
+            position: absolute;
+            left: 10px;
+            bottom: 20px;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #333;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body>
     <div id="map"></div>
+    <div class="watermark">Минск</div>
 
     <script>
-        // Инициализация карты (центр на Минске)
-        const map = L.map('map').setView([53.9045, 27.5615], 12);
-        
-        // Добавляем слой OpenStreetMap
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
+        ymaps.ready(init);
+
+        function init() {
+            var myMap = new ymaps.Map("map", {
+                center: [53.9025, 27.5615], // Центр Минска
+                zoom: 11,
+                controls: [] // Убираем ВСЕ элементы управления
+            }, {
+                // Настройки дизайна
+                suppressMapOpenBlock: true, // Убираем поиск
+                suppressObsoleteBrowserNotifier: true, // Убираем уведомления
+                yandexMapDisablePoiInteractivity: true // Отключаем всплывающие окна у объектов
+            });
+
+            // Стилизуем карту для красоты
+            myMap.options.set({
+                buttonMaxWidth: 300,
+                suppressMapOpenBlock: true
+            });
+
+            // Можно добавить красивый курсор
+            myMap.cursors.push('arrow');
+        }
     </script>
 </body>
 </html>
