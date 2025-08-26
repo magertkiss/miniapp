@@ -1,87 +1,87 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мой Mini App в Telegram</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background-color: var(--tg-theme-bg-color, #ffffff);
-            color: var(--tg-theme-text-color, #222222);
-            text-align: center;
-            padding: 20px;
-            margin: 0;
-        }
-        .container {
-            max-width: 400px;
-            margin: 0 auto;
-            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
-            padding: 25px;
-            border-radius: 15px;
-            margin-top: 20px;
-        }
-        h1 {
-            color: var(--tg-theme-button-color, #40a7e3);
-        }
-        button {
-            background-color: var(--tg-theme-button-color, #40a7e3);
-            color: var(--tg-theme-button-text-color, #ffffff);
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            margin: 10px;
-        }
-        .hidden { display: none; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🛍️ Мой Магазин</h1>
-        <p>Добро пожаловать! Тут можно сделать заказ.</p>
-        <p>Ваш ID: <b><span id="user-id">...</span></b></p>
-        
-        <button onclick="pressButton()">Посмотреть товары</button>
-        <div id="content" class="hidden">
-            <h3>Товар 1</h3>
-            <p>Цена: 100 руб.</p>
-            <button onclick="orderProduct(1)">Заказать</button>
+<div class="menu-item" onclick="showHelp()">
+            <div class="menu-item-icon">❓</div>
+            Как это работает?
         </div>
     </div>
 
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleMenu()"></div>
+
+    <!-- Основной контент: Карта -->
+    <div id="map-container">
+        <div id="map" style="height: 100%; width: 100%;"></div>
+    </div>
+
+    <!-- Другие секции (пока скрыты) -->
+    <div id="restaurants-section" class="hidden">
+        <!-- Здесь будет список ресторанов -->
+    </div>
+
+    <div id="categories-section" class="hidden">
+        <!-- Здесь будет список категорий -->
+    </div>
+
     <script>
-        let tg = window.Telegram.WebApp;
-        tg.expand();
-        tg.enableClosingConfirmation();
+        // Инициализация Telegram WebApp
+        let tg = Telegram.WebApp;
+        tg.expand(); // Открыть на весь экран
+        tg.enableClosingConfirmation(); // Включить подтверждение закрытия
 
-        let user = tg.initDataUnsafe.user;
-        if (user) {
-            document.getElementById('user-id').textContent = user.id;
+        // Инициализация карты (центр на Минске)
+        let map = L.map('map').setView([53.9045, 27.5615], 13);
+        
+        // Добавляем слой карты (OpenStreetMap)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Добавляем пример маркера (замените на свои координаты)
+        L.marker([53.9045, 27.5615])
+            .addTo(map)
+            .bindPopup('Кофейня "Пример"<br>Скидка 70% на выпечку!')
+            .openPopup();
+
+        // Функции для управления меню
+        function toggleMenu() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('open');
         }
 
-        function pressButton() {
-            document.getElementById('content').classList.remove('hidden');
-            tg.MainButton.setText("Оформить заказ");
-            tg.MainButton.show();
-            tg.MainButton.onClick(() => {
-                tg.sendData("Заказ оформлен!");
-                tg.close();
-            });
+        function showSection(sectionName) {
+            // Скрываем все секции
+            document.getElementById('map-container').classList.add('hidden');
+            document.getElementById('restaurants-section').classList.add('hidden');
+            document.getElementById('categories-section').classList.add('hidden');
+            
+            // Показываем нужную секцию
+            if (sectionName === 'map') {
+                document.getElementById('map-container').classList.remove('hidden');
+                // Обновляем размер карты при ее показе
+                setTimeout(() => { map.invalidateSize(); }, 100);
+            } else if (sectionName === 'restaurants') {
+                document.getElementById('restaurants-section').classList.remove('hidden');
+                // Здесь будет загрузка списка ресторанов
+            } else if (sectionName === 'categories') {
+                document.getElementById('categories-section').classList.remove('hidden');
+                // Здесь будет загрузка категорий
+            }
+            
+            // Закрываем меню
+            toggleMenu();
         }
 
-        function orderProduct(productId) {
+        function showHelp() {
             tg.showPopup({
-                title: "Заказ",
-                message: "Товар добавлен в корзину!",
-                buttons: [{type: "ok", id: "close"}]
-            }, function(btnId) {
-                console.log("Нажата кнопка: ", btnId);
+                title: 'Как это работает?',
+                message: '1. Найдите на карте заведение с едой\n2. Забронируйте продуктовую коробку\n3. Заберите её в указанное время\n4. Спасите еду и деньги!',
+                buttons: [{type: 'ok', text: 'Понятно'}]
             });
+            toggleMenu();
         }
+
+        // Закрываем меню при нажатии на overlay
+        document.getElementById('sidebar-overlay').addEventListener('click', toggleMenu);
     </script>
 </body>
 </html>
