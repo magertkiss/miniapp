@@ -1,87 +1,35 @@
-<div class="menu-item" onclick="showHelp()">
-            <div class="menu-item-icon">❓</div>
-            Как это работает?
-        </div>
-    </div>
-
-    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleMenu()"></div>
-
-    <!-- Основной контент: Карта -->
-    <div id="map-container">
-        <div id="map" style="height: 100%; width: 100%;"></div>
-    </div>
-
-    <!-- Другие секции (пока скрыты) -->
-    <div id="restaurants-section" class="hidden">
-        <!-- Здесь будет список ресторанов -->
-    </div>
-
-    <div id="categories-section" class="hidden">
-        <!-- Здесь будет список категорий -->
-    </div>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Карта Минска</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
 
     <script>
-        // Инициализация Telegram WebApp
-        let tg = Telegram.WebApp;
-        tg.expand(); // Открыть на весь экран
-        tg.enableClosingConfirmation(); // Включить подтверждение закрытия
-
         // Инициализация карты (центр на Минске)
-        let map = L.map('map').setView([53.9045, 27.5615], 13);
+        const map = L.map('map').setView([53.9045, 27.5615], 11);
         
-        // Добавляем слой карты (OpenStreetMap)
+        // Добавляем слой OpenStreetMap
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
-
-        // Добавляем пример маркера (замените на свои координаты)
-        L.marker([53.9045, 27.5615])
-            .addTo(map)
-            .bindPopup('Кофейня "Пример"<br>Скидка 70% на выпечку!')
-            .openPopup();
-
-        // Функции для управления меню
-        function toggleMenu() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebar-overlay');
-            sidebar.classList.toggle('open');
-            overlay.classList.toggle('open');
-        }
-
-        function showSection(sectionName) {
-            // Скрываем все секции
-            document.getElementById('map-container').classList.add('hidden');
-            document.getElementById('restaurants-section').classList.add('hidden');
-            document.getElementById('categories-section').classList.add('hidden');
-            
-            // Показываем нужную секцию
-            if (sectionName === 'map') {
-                document.getElementById('map-container').classList.remove('hidden');
-                // Обновляем размер карты при ее показе
-                setTimeout(() => { map.invalidateSize(); }, 100);
-            } else if (sectionName === 'restaurants') {
-                document.getElementById('restaurants-section').classList.remove('hidden');
-                // Здесь будет загрузка списка ресторанов
-            } else if (sectionName === 'categories') {
-                document.getElementById('categories-section').classList.remove('hidden');
-                // Здесь будет загрузка категорий
-            }
-            
-            // Закрываем меню
-            toggleMenu();
-        }
-
-        function showHelp() {
-            tg.showPopup({
-                title: 'Как это работает?',
-                message: '1. Найдите на карте заведение с едой\n2. Забронируйте продуктовую коробку\n3. Заберите её в указанное время\n4. Спасите еду и деньги!',
-                buttons: [{type: 'ok', text: 'Понятно'}]
-            });
-            toggleMenu();
-        }
-
-        // Закрываем меню при нажатии на overlay
-        document.getElementById('sidebar-overlay').addEventListener('click', toggleMenu);
     </script>
 </body>
 </html>
