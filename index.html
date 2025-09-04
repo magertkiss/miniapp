@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Карта заведений Минска</title>
     
-    <!-- Подключаем Leaflet -->
+    <!-- Подключаем Leaflet через CDN -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
@@ -20,6 +20,7 @@
             font-family: 'Arial', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
+            overflow: hidden;
         }
 
         .container {
@@ -143,6 +144,12 @@
             margin-bottom: 15px;
             border-radius: 10px;
             border-left: 4px solid #4CAF50;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .place-card:hover {
+            transform: translateX(5px);
         }
 
         .place-card h3 {
@@ -169,12 +176,13 @@
             font-size: 12px;
             font-weight: bold;
             margin-right: 5px;
+            color: white;
         }
 
-        .restaurant { background: #ff6b6b; color: white; }
-        .cafe { background: #4ecdc4; color: white; }
-        .bar { background: #45b7d1; color: white; }
-        .other { background: #96ceb4; color: white; }
+        .restaurant { background: #ff6b6b; }
+        .cafe { background: #4ecdc4; }
+        .bar { background: #45b7d1; }
+        .other { background: #96ceb4; }
     </style>
 </head>
 <body>
@@ -216,7 +224,7 @@
                         <option value="">Выберите тип</option>
                         <option value="restaurant">Ресторан</option>
                         <option value="cafe">Кафе</option>
-                        <option value="bar">Бар</option>
+                        <option value="bar">Бар</торption>
                         <option value="other">Другое</option>
                     </select>
                 </div>
@@ -237,136 +245,191 @@
     </div>
 
     <script>
-        // Инициализация карты Минска
-        const map = L.map('map').setView([53.9045, 27.5615], 13);
-        
-        // Добавляем слой с картой
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
-
-        // Массив для хранения заведений
-        let places = [];
-        let markers = [];
-
-        // Элементы DOM
-        const modal = document.getElementById('modal');
-        const form = document.getElementById('place-form');
-        const placesList = document.getElementById('places-list');
-
-        // Функции для модального окна
-        function openModal() {
-            modal.style.display = 'flex';
-        }
-
-        function closeModal() {
-            modal.style.display = 'none';
-            form.reset();
-        }
-
-        // Обработка отправки формы
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
+        // Ждем полной загрузки страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Страница загружена!');
             
-            const newPlace = {
-                name: document.getElementById('place-name').value,
-                address: document.getElementById('place-address').value,
-                category: document.getElementById('place-category').value,
-                description: document.getElementById('place-description').value,
-                phone: document.getElementById('place-phone').value,
-                id: Date.now() // Уникальный ID};
-
-            // Геокодирование адреса (упрощенное)
-            geocodeAddress(newPlace);
+            // Инициализация карты Минска
+            const map = L.map('map').setView([53.9045, 27.5615], 13);
             
-            closeModal();
-        });
+            // Добавляем слой с картой
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
 
-        // Упрощенное геокодирование (в реальном проекте используйте API)
-        function geocodeAddress(place) {
-            // Заглушка для демонстрации - случайные координаты в пределах Минска
-            const lat = 53.9 + (Math.random() - 0.5) * 0.05;
-            const lng = 27.55 + (Math.random() - 0.5) * 0.05;
-            
-            place.coordinates = [lat, lng];
-            addPlaceToMap(place);
-        }
+            // Массив для хранения заведений
+            let places = [];
+            let markers = [];
 
-        // Добавление места на карту
-        function addPlaceToMap(place) {
-            // Создаем маркер
-            const marker = L.marker(place.coordinates)
-                .addTo(map)
-                .bindPopup(`
-                    <strong>${place.name}</strong><br>
-                    ${place.address}<br>
-                    ${place.phone ? '📞 ' + place.phone : ''}
-                `);
+            // Элементы DOM
+            const modal = document.getElementById('modal');
+            const form = document.getElementById('place-form');
+            const placesList = document.getElementById('places-list');
 
-            // Добавляем в массивы
-            places.push(place);
-            markers.push(marker);
+            // Функции для модального окна
+            window.openModal = function() {
+                console.log('Открываем модальное окно');
+                modal.style.display = 'flex';
+            }
 
-            // Добавляем в список
-            addPlaceToSidebar(place);
+            window.closeModal = function() {
+                console.log('Закрываем модальное окно');
+                modal.style.display = 'none';
+                form.reset();
+            }
+            // Обработка отправки формы
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                console.log('Форма отправлена');
+                
+                const newPlace = {
+                    name: document.getElementById('place-name').value,
+                    address: document.getElementById('place-address').value,
+                    category: document.getElementById('place-category').value,
+                    description: document.getElementById('place-description').value,
+                    phone: document.getElementById('place-phone').value,
+                    id: Date.now() // Уникальный ID
+                };
 
-            // Центрируем карту на новом маркере
-            map.setView(place.coordinates, 15);
-        }
-
-        // Добавление места в боковую панель
-        function addPlaceToSidebar(place) {
-            const categoryClass = place.category || 'other';
-            const categoryNames = {
-                'restaurant': 'Ресторан',
-                'cafe': 'Кафе',
-                'bar': 'Бар',
-                'other': 'Другое'
-            };
-
-            const card = document.createElement('div');
-            card.className = 'place-card';
-            card.innerHTML = `
-                <span class="category-badge ${categoryClass}">${categoryNames[categoryClass]}</span>
-                <h3>${place.name}</h3>
-                <p>📍 ${place.address}</p>
-                ${place.phone ? <p>📞 ${place.phone}</p> : ''}
-                ${place.description ? <p>📝 ${place.description}</p> : ''}
-            `;
-
-            // Добавляем обработчик клика для центрирования карты
-            card.addEventListener('click', () => {
-                map.setView(place.coordinates, 18);
-                markers[markers.length - 1].openPopup();
+                // Геокодирование адреса (упрощенное для демонстрации)
+                geocodeAddress(newPlace);
+                
+                closeModal();
             });
 
-            placesList.appendChild(card);
-        }
-
-        // Закрытие модального окна по клику вне его
-        window.addEventListener('click', function(e) {
-            if (e.target === modal) {
-                closeModal();
+            // Упрощенное геокодирование
+            function geocodeAddress(place) {
+                // Координаты центра Минска + случайное смещение
+                const baseLat = 53.9045;
+                const baseLng = 27.5615;
+                const lat = baseLat + (Math.random() - 0.5) * 0.05;
+                const lng = baseLng + (Math.random() - 0.5) * 0.05;
+                
+                place.coordinates = [lat, lng];
+                addPlaceToMap(place);
             }
+
+            // Добавление места на карту
+            function addPlaceToMap(place) {
+                console.log('Добавляем место на карту:', place.name);
+                
+                // Иконка в зависимости от категории
+                const icon = L.icon({
+                    iconUrl: getIconUrl(place.category),
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 30],
+                    popupAnchor: [0, -30]
+                });
+
+                // Создаем маркер
+                const marker = L.marker(place.coordinates, {icon: icon})
+                    .addTo(map)
+                    .bindPopup(`
+                        <div style="min-width: 200px;">
+                            <h3 style="margin: 0 0 10px 0; color: #333;">${place.name}</h3>
+                            <p style="margin: 5px 0; color: #666;">📍 ${place.address}</p>
+                            ${place.phone ? <p style="margin: 5px 0; color: #666;">📞 ${place.phone}</p> : ''}
+                            ${place.description ? <p style="margin: 5px 0; color: #666;">📝 ${place.description}</p> : ''}
+                        </div>
+                    `);
+
+                // Добавляем в массивы
+                places.push(place);
+                markers.push(marker);
+
+                // Добавляем в список
+                addPlaceToSidebar(place);
+
+                // Центрируем карту на новом маркере
+                map.setView(place.coordinates, 15);
+                marker.openPopup();
+            }
+
+            // Получение URL иконки
+            function getIconUrl(category) {
+                const colors = {
+                    'restaurant': 'red',
+                    'cafe': 'blue',
+                    'bar': 'orange',
+                    'other': 'green'
+                };
+                return https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${colors[category] || 'green'}.png;
+            }
+
+            // Добавление места в боковую панель
+            function addPlaceToSidebar(place) {
+                const categoryClass = place.category || 'other';
+                const categoryNames = {
+                    'restaurant': 'Ресторан',
+                    'cafe': 'Кафе',
+                    'bar': 'Бар',
+                    'other': 'Другое'
+                };
+
+                const card = document.createElement('div');
+                card.className = 'place-card';
+                card.innerHTML = `
+                    <span class="category-badge ${categoryClass}">${categoryNames[categoryClass]}</span>
+                    <h3>${place.name}</h3>
+                    <p>📍 ${place.address}</p>
+                    ${place.phone ? <p>📞 ${place.phone}</p> : ''}
+                    ${place.description ? <p>📝 ${place.description}</p> : ''}
+                `;
+
+                // Добавляем обработчик клика для центрирования карты
+                card.addEventListener('click', () => {
+                    const placeObj = places.find(p => p.id === place.id);
+                    if (placeObj) {
+                        map.setView(placeObj.coordinates, 18);
+                        const marker = markers[places.indexOf(placeObj)];
+                        if (marker) marker.openPopup();
+                    }
+                });
+
+                placesList.appendChild(card);
+            }
+
+            // Закрытие модального окна по клику вне его
+            window.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+
+            // Добавим несколько примеров заведений для демонстрации
+            const samplePlaces = [
+                {
+                    name: "Ресторан 'Раковский Бровар'",
+                    address: "ул. Витебская, 10",
+                    category: "restaurant",
+                    coordinates: [53.9061, 27.5549],
+                    id: 1
+                },
+                {
+                    name: "Кафе 'Мандарин'",
+                    address: "пр. Независимости, 11",
+                    category: "cafe",
+                    coordinates: [53.8973, 27.5476],
+                    id: 2
+                },
+                {
+                    name: "Бар 'Хулиган'",
+                    address: "ул. Октябрьская, 16",
+                    category: "bar",
+                    coordinates: [53.9025, 27.5568],
+                    id: 3
+                }
+            ];
+
+            // Добавляем примеры на карту
+            samplePlaces.forEach(place => {
+                places.push(place);
+                addPlaceToMap(place);
+                addPlaceToSidebar(place);
+            });
+
+            console.log('Карта инициализирована успешно!');
         });
-
-        // Добавим несколько примеров заведений для демонстрации
-        const samplePlaces = [
-            {
-                name: "Ресторан 'Раковский Бровар'",
-                address: "ул. Витебская, 10",
-                category: "restaurant",
-                coordinates: [53.9061, 27.5549]
-            },
-            {
-                name: "Кафе 'Мандарин'",
-                address: "пр. Независимости, 11",
-                category: "cafe",
-                coordinates: [53.8973, 27.5476]
-            }
-        ];
-
-        samplePlaces.forEach(place => addPlaceToMap(place));
     </script>
 </body>
 </html>
