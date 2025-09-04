@@ -3,62 +3,370 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Карта Минска</title>
-    <script src="https://api-maps.yandex.ru/2.1/?apikey=ваш_ключ&lang=ru_RU"></script>
+    <title>Карта заведений Минска</title>
+    
+    <!-- Подключаем Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
     <style>
-        body, html {
+        * {
             margin: 0;
             padding: 0;
-            height: 100%;
-            overflow: hidden;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            box-sizing: border-box;
         }
-        #map {
-            width: 100%;
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
             height: 100vh;
         }
-        .watermark {
-            position: absolute;
-            left: 10px;
-            bottom: 20px;
-            z-index: 100;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 14px;
-            color: #333;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+
+        #map {
+            flex: 1;
+            height: 100%;
         }
+
+        .sidebar {
+            width: 350px;
+            background: white;
+            padding: 20px;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+            overflow-y: auto;
+        }
+
+        .add-button {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        .add-button:hover {
+            transform: translateY(-2px);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e1e1;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: #4CAF50;
+            outline: none;
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            transition: transform 0.3s ease;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+        }
+
+        .close {
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.3s ease;
+        }
+
+        .close:hover {
+            color: #333;
+        }
+
+        .place-card {
+            background: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .place-card h3 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .place-card p {
+            color: #666;
+            margin-bottom: 3px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .category-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        .restaurant { background: #ff6b6b; color: white; }
+        .cafe { background: #4ecdc4; color: white; }
+        .bar { background: #45b7d1; color: white; }
+        .other { background: #96ceb4; color: white; }
     </style>
 </head>
 <body>
-    <div id="map"></div>
-    <div class="watermark">Минск</div>
+    <div class="container">
+        <!-- Боковая панель -->
+        <div class="sidebar">
+            <h1>🍽️ Заведения Минска</h1>
+            <button class="add-button" onclick="openModal()">+ Добавить заведение</button>
+            
+            <div id="places-list">
+                <!-- Сюда будут добавляться карточки заведений -->
+            </div>
+        </div>
+
+        <!-- Карта -->
+        <div id="map"></div>
+    </div>
+
+    <!-- Модальное окно -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>Добавить новое заведение</h2>
+            
+            <form id="place-form">
+                <div class="form-group">
+                    <label for="place-name">Название заведения *</label>
+                    <input type="text" id="place-name" required placeholder="Например: Ресторан 'Вкусно'">
+                </div>
+
+                <div class="form-group">
+                    <label for="place-address">Адрес *</label>
+                    <input type="text" id="place-address" required placeholder="Например: ул. Ленина, 15">
+                </div>
+
+                <div class="form-group">
+                    <label for="place-category">Тип заведения *</label>
+                    <select id="place-category" required>
+                        <option value="">Выберите тип</option>
+                        <option value="restaurant">Ресторан</option>
+                        <option value="cafe">Кафе</option>
+                        <option value="bar">Бар</option>
+                        <option value="other">Другое</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="place-description">Описание</label>
+                    <textarea id="place-description" rows="3" placeholder="Краткое описание заведения..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="place-phone">Телефон</label>
+                    <input type="tel" id="place-phone" placeholder="+375 29 123-45-67">
+                </div>
+
+                <button type="submit" class="btn-submit">Добавить на карту</button>
+            </form>
+        </div>
+    </div>
 
     <script>
-        ymaps.ready(init);
+        // Инициализация карты Минска
+        const map = L.map('map').setView([53.9045, 27.5615], 13);
+        
+        // Добавляем слой с картой
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
 
-        function init() {
-            var myMap = new ymaps.Map("map", {
-                center: [53.9025, 27.5615], // Центр Минска
-                zoom: 11,
-                controls: [] // Убираем ВСЕ элементы управления
-            }, {
-                // Настройки дизайна
-                suppressMapOpenBlock: true, // Убираем поиск
-                suppressObsoleteBrowserNotifier: true, // Убираем уведомления
-                yandexMapDisablePoiInteractivity: true // Отключаем всплывающие окна у объектов
-            });
+        // Массив для хранения заведений
+        let places = [];
+        let markers = [];
 
-            // Стилизуем карту для красоты
-            myMap.options.set({
-                buttonMaxWidth: 300,
-                suppressMapOpenBlock: true
-            });
+        // Элементы DOM
+        const modal = document.getElementById('modal');
+        const form = document.getElementById('place-form');
+        const placesList = document.getElementById('places-list');
 
-            // Можно добавить красивый курсор
-            myMap.cursors.push('arrow');
+        // Функции для модального окна
+        function openModal() {
+            modal.style.display = 'flex';
         }
+
+        function closeModal() {
+            modal.style.display = 'none';
+            form.reset();
+        }
+
+        // Обработка отправки формы
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const newPlace = {
+                name: document.getElementById('place-name').value,
+                address: document.getElementById('place-address').value,
+                category: document.getElementById('place-category').value,
+                description: document.getElementById('place-description').value,
+                phone: document.getElementById('place-phone').value,
+                id: Date.now() // Уникальный ID};
+
+            // Геокодирование адреса (упрощенное)
+            geocodeAddress(newPlace);
+            
+            closeModal();
+        });
+
+        // Упрощенное геокодирование (в реальном проекте используйте API)
+        function geocodeAddress(place) {
+            // Заглушка для демонстрации - случайные координаты в пределах Минска
+            const lat = 53.9 + (Math.random() - 0.5) * 0.05;
+            const lng = 27.55 + (Math.random() - 0.5) * 0.05;
+            
+            place.coordinates = [lat, lng];
+            addPlaceToMap(place);
+        }
+
+        // Добавление места на карту
+        function addPlaceToMap(place) {
+            // Создаем маркер
+            const marker = L.marker(place.coordinates)
+                .addTo(map)
+                .bindPopup(`
+                    <strong>${place.name}</strong><br>
+                    ${place.address}<br>
+                    ${place.phone ? '📞 ' + place.phone : ''}
+                `);
+
+            // Добавляем в массивы
+            places.push(place);
+            markers.push(marker);
+
+            // Добавляем в список
+            addPlaceToSidebar(place);
+
+            // Центрируем карту на новом маркере
+            map.setView(place.coordinates, 15);
+        }
+
+        // Добавление места в боковую панель
+        function addPlaceToSidebar(place) {
+            const categoryClass = place.category || 'other';
+            const categoryNames = {
+                'restaurant': 'Ресторан',
+                'cafe': 'Кафе',
+                'bar': 'Бар',
+                'other': 'Другое'
+            };
+
+            const card = document.createElement('div');
+            card.className = 'place-card';
+            card.innerHTML = `
+                <span class="category-badge ${categoryClass}">${categoryNames[categoryClass]}</span>
+                <h3>${place.name}</h3>
+                <p>📍 ${place.address}</p>
+                ${place.phone ? <p>📞 ${place.phone}</p> : ''}
+                ${place.description ? <p>📝 ${place.description}</p> : ''}
+            `;
+
+            // Добавляем обработчик клика для центрирования карты
+            card.addEventListener('click', () => {
+                map.setView(place.coordinates, 18);
+                markers[markers.length - 1].openPopup();
+            });
+
+            placesList.appendChild(card);
+        }
+
+        // Закрытие модального окна по клику вне его
+        window.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+
+        // Добавим несколько примеров заведений для демонстрации
+        const samplePlaces = [
+            {
+                name: "Ресторан 'Раковский Бровар'",
+                address: "ул. Витебская, 10",
+                category: "restaurant",
+                coordinates: [53.9061, 27.5549]
+            },
+            {
+                name: "Кафе 'Мандарин'",
+                address: "пр. Независимости, 11",
+                category: "cafe",
+                coordinates: [53.8973, 27.5476]
+            }
+        ];
+
+        samplePlaces.forEach(place => addPlaceToMap(place));
     </script>
 </body>
 </html>
