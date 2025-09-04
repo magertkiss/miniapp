@@ -5,9 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Карта заведений Минска</title>
     
-    <!-- Подключаем Leaflet через CDN -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Подключаем Яндекс.Карты -->
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=ваш_ключ&lang=ru_RU" type="text/javascript"></script>
     
     <style>
         * {
@@ -150,6 +149,7 @@
 
         .place-card:hover {
             transform: translateX(5px);
+            background: #e9ecef;
         }
 
         .place-card h3 {
@@ -183,14 +183,27 @@
         .cafe { background: #4ecdc4; }
         .bar { background: #45b7d1; }
         .other { background: #96ceb4; }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: white;
+            font-size: 20px;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div id="loading" class="loading">
+        Загрузка карты...
+    </div>
+
+    <div class="container" style="display: none;" id="main-content">
         <!-- Боковая панель -->
         <div class="sidebar">
             <h1>🍽️ Заведения Минска</h1>
-            <button class="add-button" onclick="openModal()">+ Добавить заведение</button>
+            <button class="add-button" id="add-button">+ Добавить заведение</button>
             
             <div id="places-list">
                 <!-- Сюда будут добавляться карточки заведений -->
@@ -204,7 +217,7 @@
     <!-- Модальное окно -->
     <div id="modal" class="modal">
         <div class="modal-content">
-            <span class="close" onclick="closeModal()">&times;</span>
+            <span class="close" id="close-modal">&times;</span>
             <h2>Добавить новое заведение</h2>
             
             <form id="place-form">
@@ -214,7 +227,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="place-address">Адрес *</label>
+                    <label for="place-address">Адрес в Минске *</label>
                     <input type="text" id="place-address" required placeholder="Например: ул. Ленина, 15">
                 </div>
 
@@ -224,7 +237,7 @@
                         <option value="">Выберите тип</option>
                         <option value="restaurant">Ресторан</option>
                         <option value="cafe">Кафе</option>
-                        <option value="bar">Бар</торption>
+                        <option value="bar">Бар</option>
                         <option value="other">Другое</option>
                     </select>
                 </div>
@@ -245,38 +258,49 @@
     </div>
 
     <script>
-        // Ждем полной загрузки страницы
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Страница загружена!');
+        // Ждем загрузки API Яндекс.Карт
+        ymaps.ready(init);
+
+        function init() {
+            console.log('Яндекс.Карты загружены!');
             
+            // Скрываем loading и показываем основной контент
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('main-content').style.display = 'flex';
+
             // Инициализация карты Минска
-            const map = L.map('map').setView([53.9045, 27.5615], 13);
-            
-            // Добавляем слой с картой
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(map);
+            var map = new ymaps.Map('map', {
+                center: [53.9045, 27.5615], // Центр Минска
+                zoom: 13,
+                controls: ['zoomControl', 'fullscreenControl']
+            });
 
             // Массив для хранения заведений
             let places = [];
-            let markers = [];
+            let placemarks = [];
 
             // Элементы DOM
             const modal = document.getElementById('modal');
             const form = document.getElementById('place-form');
             const placesList = document.getElementById('places-list');
+            const addButton = document.getElementById('add-button');
+            const closeButton = document.getElementById('close-modal');
 
             // Функции для модального окна
-            window.openModal = function() {
+            addButton.addEventListener('click', openModal);
+            closeButton.addEventListener('click', closeModal);
+
+            function openModal() {
                 console.log('Открываем модальное окно');
                 modal.style.display = 'flex';
             }
 
-            window.closeModal = function() {
+            function closeModal() {
                 console.log('Закрываем модальное окно');
                 modal.style.display = 'none';
                 form.reset();
             }
+
             // Обработка отправки формы
             form.addEventListener('submit', function(e) {
                 e.preventDefault();
@@ -288,77 +312,77 @@
                     category: document.getElementById('place-category').value,
                     description: document.getElementById('place-description').value,
                     phone: document.getElementById('place-phone').value,
-                    id: Date.now() // Уникальный ID
+                    id: Date.now()
                 };
 
-                // Геокодирование адреса (упрощенное для демонстрации)
+                // Геокодирование адреса через Яндекс
                 geocodeAddress(newPlace);
                 
                 closeModal();
             });
 
-            // Упрощенное геокодирование
+            // Геокодирование через Яндекс
             function geocodeAddress(place) {
-                // Координаты центра Минска + случайное смещение
-                const baseLat = 53.9045;
-                const baseLng = 27.5615;
-                const lat = baseLat + (Math.random() - 0.5) * 0.05;
-                const lng = baseLng + (Math.random() - 0.5) * 0.05;
-                
-                place.coordinates = [lat, lng];
-                addPlaceToMap(place);
+                ymaps.geocode(place.address + ', Минск').then(function(res) {
+                    var firstGeoObject = res.geoObjects.get(0);
+                    
+                    if (firstGeoObject) {
+                        var coordinates = firstGeoObject.geometry.getCoordinates();
+                        place.coordinates = coordinates;
+                        addPlaceToMap(place);
+                    } else {
+                        alert('Адрес не найден! Проверьте правильность ввода.');
+                    }
+                });
             }
 
             // Добавление места на карту
             function addPlaceToMap(place) {
                 console.log('Добавляем место на карту:', place.name);
                 
-                // Иконка в зависимости от категории
-                const icon = L.icon({
-                    iconUrl: getIconUrl(place.category),
-                    iconSize: [30, 30],
-                    iconAnchor: [15, 30],
-                    popupAnchor: [0, -30]
-                });
+                // Цвет иконки в зависимости от категории
+                const iconColors = {
+                    'restaurant': 'red',
+                    'cafe': 'blue',
+                    'bar': 'orange',
+                    'other': 'green'
+                };
+                
+                const color = iconColors[place.category] || 'green';
 
-                // Создаем маркер
-                const marker = L.marker(place.coordinates, {icon: icon})
-                    .addTo(map)
-                    .bindPopup(`
+                // Создаем метку
+                var placemark = new ymaps.Placemark(place.coordinates, {
+                    balloonContent: `
                         <div style="min-width: 200px;">
                             <h3 style="margin: 0 0 10px 0; color: #333;">${place.name}</h3>
                             <p style="margin: 5px 0; color: #666;">📍 ${place.address}</p>
                             ${place.phone ? <p style="margin: 5px 0; color: #666;">📞 ${place.phone}</p> : ''}
                             ${place.description ? <p style="margin: 5px 0; color: #666;">📝 ${place.description}</p> : ''}
                         </div>
-                    `);
+                    `,
+                    iconCaption: place.name
+                }, {
+                    preset: 'islands#${color}Icon',
+                    draggable: false
+                });
 
+                // Добавляем метку на карту
+                map.geoObjects.add(placemark);
+                
                 // Добавляем в массивы
                 places.push(place);
-                markers.push(marker);
+                placemarks.push(placemark);
 
                 // Добавляем в список
                 addPlaceToSidebar(place);
 
-                // Центрируем карту на новом маркере
-                map.setView(place.coordinates, 15);
-                marker.openPopup();
-            }
-
-            // Получение URL иконки
-            function getIconUrl(category) {
-                const colors = {
-                    'restaurant': 'red',
-                    'cafe': 'blue',
-                    'bar': 'orange',
-                    'other': 'green'
-                };
-                return https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${colors[category] || 'green'}.png;
+                // Центрируем карту на новой метке
+                map.setCenter(place.coordinates, 16);
+                placemark.balloon.open();
             }
 
             // Добавление места в боковую панель
-            function addPlaceToSidebar(place) {
-                const categoryClass = place.category || 'other';
+            function addPlaceToSidebar(place) {const categoryClass = place.category || 'other';
                 const categoryNames = {
                     'restaurant': 'Ресторан',
                     'cafe': 'Кафе',
@@ -376,13 +400,15 @@
                     ${place.description ? <p>📝 ${place.description}</p> : ''}
                 `;
 
-                // Добавляем обработчик клика для центрирования карты
+                // Добавляем обработчик клика
                 card.addEventListener('click', () => {
                     const placeObj = places.find(p => p.id === place.id);
                     if (placeObj) {
-                        map.setView(placeObj.coordinates, 18);
-                        const marker = markers[places.indexOf(placeObj)];
-                        if (marker) marker.openPopup();
+                        map.setCenter(placeObj.coordinates, 18);
+                        const index = places.indexOf(placeObj);
+                        if (placemarks[index]) {
+                            placemarks[index].balloon.open();
+                        }
                     }
                 });
 
@@ -396,7 +422,7 @@
                 }
             });
 
-            // Добавим несколько примеров заведений для демонстрации
+            // Добавим несколько примеров заведений
             const samplePlaces = [
                 {
                     name: "Ресторан 'Раковский Бровар'",
@@ -407,7 +433,7 @@
                 },
                 {
                     name: "Кафе 'Мандарин'",
-                    address: "пр. Независимости, 11",
+                    address: "проспект Независимости, 11",
                     category: "cafe",
                     coordinates: [53.8973, 27.5476],
                     id: 2
@@ -423,13 +449,28 @@
 
             // Добавляем примеры на карту
             samplePlaces.forEach(place => {
+                // Создаем метку для примера
+                var placemark = new ymaps.Placemark(place.coordinates, {
+                    balloonContent: `
+                        <div style="min-width: 200px;">
+                            <h3 style="margin: 0 0 10px 0; color: #333;">${place.name}</h3>
+                            <p style="margin: 5px 0; color: #666;">📍 ${place.address}</p>
+                        </div>
+                    `,
+                    iconCaption: place.name
+                }, {
+                    preset: 'islands#' + (place.category === 'restaurant' ? 'red' : 
+                                          place.category === 'cafe' ? 'blue' : 'orange') + 'Icon'
+                });
+
+                map.geoObjects.add(placemark);
                 places.push(place);
-                addPlaceToMap(place);
+                placemarks.push(placemark);
                 addPlaceToSidebar(place);
             });
 
-            console.log('Карта инициализирована успешно!');
-        });
+            console.log('Карта Яндекс инициализирована успешно!');
+        }
     </script>
 </body>
 </html>
